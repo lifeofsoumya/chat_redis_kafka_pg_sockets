@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "server": "file:../..",
+    "socket.io": "^4.7.2"
+  }
+}
