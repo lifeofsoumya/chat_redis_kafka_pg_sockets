@@ -1,4 +1,19 @@
 import { Server } from "socket.io"
+import Redis from 'ioredis'
+import 'dotenv/config'
+
+const pub = new Redis({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT || '28263'),
+    username: 'default',
+    password: process.env.REDIS_PW
+});
+const sub = new Redis({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT || '28263'),
+    username: 'default',
+    password: process.env.REDIS_PW
+});
 
 class SocketService {
     private _io: Server;
@@ -11,6 +26,7 @@ class SocketService {
                 origin: "*"
             }
         });
+        sub.subscribe('MESSAGES')
     }
 
     public initListeners() {
@@ -21,7 +37,14 @@ class SocketService {
             console.log('New socket connected ', socket.id)
             socket.on('event:message', async ({message}: {message: string}) => {
                 console.log('New message received ', message);
+                // redis here
+                await pub.publish('MESSAGES', JSON.stringify({ message }));
             })
+        })
+        sub.on('message', (channel, message) => {
+            if(channel === 'MESSAGES') {
+                io.emit('message', message);
+            }
         })
     }
 
