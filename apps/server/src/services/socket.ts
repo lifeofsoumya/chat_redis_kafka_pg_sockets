@@ -1,6 +1,8 @@
 import { Server } from "socket.io"
 import Redis from 'ioredis'
 import 'dotenv/config'
+import prismaClient from "./prisma";
+import { produceMessage } from "./kafka";
 
 const pub = new Redis({
     host: process.env.REDIS_HOST,
@@ -41,9 +43,18 @@ class SocketService {
                 await pub.publish('MESSAGES', JSON.stringify({ message }));
             })
         })
-        sub.on('message', (channel, message) => {
+        sub.on('message', async (channel, message) => {
             if(channel === 'MESSAGES') {
                 io.emit('message', message);
+                //db entry
+                // await prismaClient.message.create({
+                //     data: {
+                //         text: message,
+                //     }
+                // }) // now for high throughput rmv db query and use kafka
+
+                produceMessage(message);
+                console.log('Message produced to kafka broker');
             }
         })
     }
